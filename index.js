@@ -5,8 +5,15 @@ function main() {
     console.log("Starting...");
     sleep(4000);
 
-    robot.moveMouse(0, 0);
-    robot.mouseClick();
+    var number_of_loops = 0;
+
+    while (number_of_loops < 5) {
+        robot.moveMouseSmooth(830, 454);
+        robot.mouseClick();
+        sleep(8000);
+        number_of_loops++;
+    }
+    
     console.log("Done.");
 }
 
