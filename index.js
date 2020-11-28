@@ -1,5 +1,13 @@
 var robot = require("robotjs");
 
+/**
+ * Exit the script if you do 5 camera rotations; probably left the forest.
+ * Automatically log out when your script ends.
+ * Adapt the script for mining instead of woodcutting.
+ * Automatically logout if you're attacked by monitoring health.
+ * Drop 8-12 logs at once.
+ */
+
 
 function main() {
     console.log("Starting...");
@@ -7,7 +15,7 @@ function main() {
 
     var number_of_loops = 0;
 
-    while (number_of_loops < 5) {
+    while (number_of_loops < 28) {
 
         var tree = findTree();
         // if we can't find a tree, write an error message and exit the loop
@@ -20,7 +28,7 @@ function main() {
         // chop down the tree we found
         robot.moveMouseSmooth(tree.x, tree.y);
         robot.mouseClick();
-        sleep(8000);
+        sleep(3000);
 
         dropLogs();
 
@@ -34,13 +42,29 @@ function dropLogs() {
     // Set coordinates of inventory item you want to drop
     var inventory_x = 1842;
     var inventory_y = 797;
+    var inventory_log_color = '6d5432';
 
-    // drop logs from the inventory
-    robot.moveMouseSmooth(inventory_x, inventory_y);
-    robot.mouseClick('right');
-    robot.moveMouseSmooth(inventory_x, inventory_y + 70);
-    robot.mouseClick();
-    sleep(1000);    
+    var pixel_color = robot.getPixelColor(inventory_x, inventory_y);
+    var wait_cycles = 0;
+    var max_wait_cycles = 9;
+    while (pixel_color != inventory_log_color && wait_cycles < max_wait_cycles) {
+        // Waiting a little bit longer to see if the chopping finishes
+        sleep(1000);
+        // Sample the pixel color again after waiting
+        pixel_color = robot.getPixelColor(inventory_x, inventory_y);
+        // increment the counter
+        wait_cycles++;
+    }
+
+    // drop logs from the inventory if the color matches the expected log color
+    if (pixel_color === inventory_log_color) {
+        robot.moveMouseSmooth(inventory_x, inventory_y);
+        robot.mouseClick('right');
+        sleep(300);
+        robot.moveMouseSmooth(inventory_x, inventory_y + 70);
+        robot.mouseClick();
+        sleep(1000);    
+    }
 }
 
 function testScreenCapture() {
@@ -67,11 +91,13 @@ function findTree() {
             var screen_x = random_x + x;
             var screen_y = random_y + y;
 
-            console.log("Found a tree at: " + screen_x + "," + screen_y + " color " + sample_color);
-            return {
-                x: screen_x,
-                y: screen_y
+            if (confirmTree(screen_x, screen_y)) {
+                console.log("Found a tree at: " + screen_x + "," + screen_y + " color " + sample_color);
+                return {x: screen_x, y: screen_y};
+            } else {
+                console.log("Unconfirmed tree at: " + screen_x + "," + screen_y + " color " + sample_color);
             }
+
         }
     }
 
@@ -84,6 +110,20 @@ function rotateCamera() {
     robot.keyToggle('right', 'down');
     sleep(1000);
     robot.keyToggle('right', 'up');
+}
+
+function confirmTree(screen_x, screen_y) {
+    // first move the mouse to given coordinates
+    robot.moveMouse(screen_x, screen_y);
+    // wait a moment for the help text to appear
+    sleep(300);
+
+    // now check the color of the action text
+    var check_x = 80;
+    var check_y = 59;
+    var pixel_color = robot.getPixelColor(check_x, check_y);
+
+    return pixel_color === "00ffff";
 }
 
 function sleep(ms) {
